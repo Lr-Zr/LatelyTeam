@@ -12,6 +12,11 @@ namespace nara
         {
             _animator = transform.GetComponent<Animator>();
         }
+        public void StopAnime()
+        {
+            _animator.StopPlayback();
+            _animator.Play("Idle");
+        }
         public void SetAnim(PlayerState State)
         {
             _animator.SetInteger("State",(int) State);

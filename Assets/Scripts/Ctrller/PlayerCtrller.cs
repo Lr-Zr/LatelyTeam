@@ -9,6 +9,7 @@ using UnityEditor.Build;
 using UnityEditor.Experimental.GraphView;
 using JetBrains.Annotations;
 using TMPro;
+using UnityEditor.Compilation;
 
 namespace nara
 {
@@ -110,6 +111,7 @@ namespace nara
         bool _IsKnockOut;
         bool _IsShield;
         public float _ECooldown = 0f;//방어키 딜레이
+        bool _IsRespawn;
 
 
         float _Teemo;
@@ -146,7 +148,7 @@ namespace nara
 
 
 
-        //test
+        //게이지에 따른 넉아웃 시간 측정용
         [SerializeField]
         float kt1;
         [SerializeField]
@@ -158,8 +160,12 @@ namespace nara
         [SerializeField]
         float kt5;
 
-
-
+        //죽을 때 
+        float RespawnTime;
+        //리스폰 포지션
+        Vector3 P1ResPos;
+        Vector3 P2ResPos;
+        
 
 
 
@@ -188,16 +194,44 @@ namespace nara
             _IsUpMove = false;
             _IsAirAtk = false;
             playertype = 1;
-
-
+            P1ResPos = new Vector3(-4.5f, 9f, 0f);
+            P2ResPos = new Vector3(4.5f, 9f, 0f);
+               
             TypeOfPlayer(1);
         }
 
         private void FixedUpdate()
 
         {
+            if (RespawnTime > 0f)
+            {
+                RespawnTime -= Time.deltaTime;
+                if (_IsRespawn == true)
+                {
 
+                    if (RespawnTime < 4.0f)
+                    {
 
+                        if (playertype == 1)
+                        {
+                            this.transform.position = P1ResPos;
+                        }
+                        else
+                        {
+                            this.transform.position = P2ResPos;
+
+                        }
+
+                        this.transform.eulerAngles = new Vector3(0, 180, 0);
+                        _IsRespawn = false;
+                    }
+                    else
+                    {
+                        _Rigid.velocity = Vector3.zero;
+                    }
+
+                }
+            }
             _ECooldown -= Time.deltaTime;//쿨타임6초
             if (_IsShield)//1초동안 무적역할
             {
@@ -362,7 +396,7 @@ namespace nara
         }
         void OnKeyboard()
         {
-            if ((_IsKnockOut || _IsShield) || stuntime >= 0f) return;
+            if ((_IsKnockOut || _IsShield) || stuntime >= 0f||RespawnTime>0f) return;
             if (playertype == 1)
             {
                 if (Input.GetKey(KeyCode.S))//조합기 하 및 하강 속도 향상
@@ -903,15 +937,18 @@ namespace nara
 
         public void onRLMove()
         {
+            if (_IsRespawn) return;
             _IsRLMove = true;
             _MovePos = this.transform.position;
         }
         public void onUpMove()
         {
+            if (_IsRespawn) return;
             _IsUpMove = true;
         }
         public void onDwMove()
         {
+            if (_IsRespawn) return;
             _IsDwMove = true;
         }
 
@@ -944,8 +981,19 @@ namespace nara
 
         private void OnTriggerEnter(Collider other)
         {
+            if (other.gameObject.tag == "DeadLine")
+            {
+                setinit();
+                Debug.Log("데드라인 터치");
+                if (RespawnTime > 0f) return;//여러번 생성방지
+                RespawnTime = 6.0f;
+                _IsRespawn = true;
+                _Eff.Dead(this.transform.position);//이펙트 생성
+
+            }
 
             if (_IsKnockOut || _IsShield) return;
+
 
             //방어스킬 쓸때는 하지말것.
             if (playertype == 1)
@@ -953,11 +1001,11 @@ namespace nara
 
                 if (other.gameObject.tag == "2PA")
                 {
-                    Debug.Log("이거 여기로 드러와야하는데?222222");
 
                     PlayerCtrllercap pc = other.transform.root.GetComponent<PlayerCtrllercap>();
                     this.dir = -pc.dir;
-                    pc.HitRot();
+
+                    pc.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
                     if (pc._Power.x == 0 && pc._Power.y == 0) //경직
                     {
                         stuntime = 0.2f;
@@ -989,7 +1037,7 @@ namespace nara
                     Debug.Log("이거 여기로 드러와야하는데?");
                     PlayerCtrllercap pc = other.transform.root.GetComponent<PlayerCtrllercap>();
                     dir = -pc.dir;
-                    pc.HitRot();
+                    pc.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
                     if (pc._Power.x == 0 && pc._Power.y == 0) //경직
                     {
                         stuntime = 0.2f;
@@ -1014,18 +1062,14 @@ namespace nara
                     _Eff.Hitted(other.transform.position, 1);
                 }
             }
+
+         
         }
 
 
 
 
-        public void HitRot()
-        {
 
-            this.transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.right * dir), 1f);
-
-
-        }
         public void TypeOfPlayer(int type)
         {
             if (type == 1)
@@ -1033,6 +1077,7 @@ namespace nara
                 dir = 1;
 
                 this.transform.eulerAngles = new Vector3(0, -90f, 0);
+                this.transform.position = new Vector3(-10f, 1f, 0f);
                 //위치 넣기
 
 
@@ -1054,7 +1099,7 @@ namespace nara
                 this.transform.eulerAngles = new Vector3(0, -90f, 0);
                 //위치 넣기
                 this.tag = "2P";
-
+                this.transform.position = new Vector3(10f, 1f, 0f);
                 _Cols.SetTag("2PA");
                 _objgauge = GameObject.Find("2pGauge");
                 _objgauge.transform.position = this.transform.position;

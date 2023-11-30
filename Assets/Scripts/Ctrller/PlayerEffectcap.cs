@@ -33,6 +33,10 @@ namespace nara
         [SerializeField]
         GameObject _hit;
         GameObject _hitgo;
+
+        [SerializeField]
+        GameObject _out;
+        GameObject _outgo;
         void Start()
         {
             go = new GameObject[(int)Effect.End];
@@ -275,6 +279,21 @@ namespace nara
           
             _hitgo = Instantiate(_hit, pos, _hit.transform.rotation);
             Destroy(_hitgo, time);
+        }
+
+        public void Dead(Vector3 pos)
+        {
+            pos += new Vector3(0, 0, -2f);
+
+            float dx = pos.x;
+            float dy = pos.y - 5;
+            float degree = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
+            degree = (degree + 180) % 360;
+            _out.transform.localEulerAngles = new Vector3(0, 0, degree);
+            _outgo = Instantiate(_out, pos, _out.transform.rotation);
+
+
+            Destroy(_outgo, 2);
         }
     }
 

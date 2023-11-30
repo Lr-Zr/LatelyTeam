@@ -104,7 +104,7 @@ namespace nara
         bool _IsKnockOut;
         bool _IsShield;
         public float _ECooldown = 0f;//방어키 딜레이
-
+        bool _IsRespawn;
 
 
         float _Teemo;
@@ -131,7 +131,7 @@ namespace nara
         float stuntime = 0.1f;//경직시간
         float outtime;//넉아웃 시간//
         float startime;//넉아웃 이펙트 생성시간;
-      
+
 
         //test
         [SerializeField]
@@ -146,6 +146,12 @@ namespace nara
         float kt5;
 
         Vector3 hittedPower;
+        //죽을 때 
+        float RespawnTime;
+        //리스폰 포지션
+        Vector3 P1ResPos;
+        Vector3 P2ResPos;
+
 
         void Start()
         {
@@ -168,13 +174,43 @@ namespace nara
             _IsUpMove = false;
             _IsAirAtk = false;
             playertype = 2;
-
+            P1ResPos = new Vector3(-4.5f, 9f, 0f);
+            P2ResPos = new Vector3(4.5f, 9f, 0f);
 
             TypeOfPlayer(2);
         }
 
         private void FixedUpdate()
         {
+            if (RespawnTime > 0f)
+            {
+                RespawnTime -= Time.deltaTime;
+                if (_IsRespawn == true)
+                {
+
+                    if (RespawnTime < 4.0f)
+                    {
+
+                        if (playertype == 1)
+                        {
+                            this.transform.position = P1ResPos;
+                        }
+                        else
+                        {
+                            this.transform.position = P2ResPos;
+
+                        }
+
+                        this.transform.eulerAngles = new Vector3(0, 180, 0);
+                        _IsRespawn = false;
+                    }
+                    else
+                    {
+                        _Rigid.velocity = Vector3.zero;
+                    }
+
+                }
+            }
             //방어키 쿨타임 
             _ECooldown -= Time.deltaTime;
 
@@ -190,10 +226,10 @@ namespace nara
 
             }
             //넉아웃 상태에서 이동
-            if (_IsKnockOut) 
+            if (_IsKnockOut)
             {
                 startime += Time.deltaTime;
-                if(startime>0.05f)
+                if (startime > 0.05f)
                 {
                     //이펙트 생성
                     _Eff.EffectOn(16);
@@ -205,7 +241,7 @@ namespace nara
                     _IsKnockOut = false;
                     _Rigid.velocity = Vector3.zero;
                     startime = 0;
-                  
+
                 }
                 KnockOutMove();
 
@@ -291,7 +327,7 @@ namespace nara
 
 
             //낙하상태 
-            if (_Rigid.velocity.y < -0.05f && !_IsAttack && !_IsSkill && stuntime < 0f&&!_IsKnockOut)//낙하
+            if (_Rigid.velocity.y < -0.05f && !_IsAttack && !_IsSkill && stuntime < 0f && !_IsKnockOut)//낙하
             {
                 SetState(PlayerState.Falling);
 
@@ -320,7 +356,7 @@ namespace nara
         void OnKeyboard()
         {
 
-            if ((_IsKnockOut || _IsShield) || stuntime >= 0f) return;
+            if ((_IsKnockOut || _IsShield) || stuntime >= 0f || RespawnTime > 0f) return;
             if (playertype == 1)
             {
                 if (Input.GetKey(KeyCode.S))//조합기 하 및 하강 속도 향상
@@ -859,11 +895,15 @@ namespace nara
 
         public void onRLMove()
         {
+            if (_IsRespawn) return;
+
             _IsRLMove = true;
             _MovePos = this.transform.position;
         }
         public void onUpMove()
         {
+            if (_IsRespawn) return;
+
             _IsUpMove = true;
         }
 
@@ -896,6 +936,17 @@ namespace nara
         private void OnTriggerEnter(Collider other)
         {
 
+            if (other.gameObject.tag == "DeadLine")
+            {
+                setinit();
+                Debug.Log("데드라인 터치");
+                if (RespawnTime > 0f) return;//여러번 생성방지
+                RespawnTime = 6.0f;
+                _IsRespawn = true;
+                _Eff.Dead(this.transform.position);//이펙트 생성
+
+            }
+            if (_IsKnockOut || _IsShield) return;
 
 
             //방어스킬 쓸때는 하지말것.
@@ -906,8 +957,7 @@ namespace nara
 
                     PlayerCtrller pc = other.transform.root.GetComponent<PlayerCtrller>();
                     this.dir = -pc.dir;
-                    pc.HitRot();
-
+                    pc.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
                     if (pc._Power.x == 0 && pc._Power.y == 0) //경직
                     {
                         stuntime = 0.2f;
@@ -942,7 +992,7 @@ namespace nara
 
                     PlayerCtrller pc = other.transform.root.GetComponent<PlayerCtrller>();
                     dir = -pc.dir;
-                    pc.HitRot();
+                    pc.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
                     if (pc._Power.x == 0 && pc._Power.y == 0) //경직
                     {
                         stuntime = 0.2f;
@@ -960,20 +1010,17 @@ namespace nara
                         setOutTime();
                         SetState(PlayerState.KnockOut);
                         _Anim.TriggerKnockOut();
-                        
+
                     }
 
                     _Eff.Hitted(other.transform.position, 1);
                 }
             }
+
+         
         }
 
-        public void HitRot()
-        {
 
-            this.transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.right * dir), 1f);
-
-        }
 
         public void TypeOfPlayer(int type)
         {
@@ -1030,12 +1077,12 @@ namespace nara
 
         void KnockOutMove()
         {
-             // 알아서 찾으셈 
+            // 알아서 찾으셈 
             //Vector3 v = new Vector3(-dir*hittedPower.x, hittedPower.y, 0);
             //_Rigid.AddForce(v * 0.01f, ForceMode.Force);
 
 
-            Vector3 v = new Vector3(-dir * hittedPower.x*30, hittedPower.y*5, 0);
+            Vector3 v = new Vector3(-dir * hittedPower.x * 30, hittedPower.y * 5, 0);
             _Rigid.AddForce(v * 0.01f, ForceMode.Force);
 
 

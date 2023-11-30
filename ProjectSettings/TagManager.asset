@@ -9,6 +9,7 @@ TagManager:
   - 1PA
   - 2P
   - 2PA
+  - DeadLine
   layers:
   - Default
   - TransparentFX
