@@ -10,6 +10,7 @@ TagManager:
   - 2P
   - 2PA
   - DeadLine
+  - Floor
   layers:
   - Default
   - TransparentFX

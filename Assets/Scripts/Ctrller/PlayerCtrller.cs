@@ -10,6 +10,7 @@ using UnityEditor.Experimental.GraphView;
 using JetBrains.Annotations;
 using TMPro;
 using UnityEditor.Compilation;
+using System.Runtime.CompilerServices;
 
 namespace nara
 {
@@ -160,18 +161,18 @@ namespace nara
         [SerializeField]
         float kt5;
 
+        Vector3 hittedPower;
         //죽을 때 
         float RespawnTime;
         //리스폰 포지션
         Vector3 P1ResPos;
         Vector3 P2ResPos;
-        
+
+
+        int _BodyTouchWay;
 
 
 
-
-
-        Vector3 hittedPower;
 
         void Start()
         {
@@ -196,7 +197,7 @@ namespace nara
             playertype = 1;
             P1ResPos = new Vector3(-4.5f, 9f, 0f);
             P2ResPos = new Vector3(4.5f, 9f, 0f);
-               
+
             TypeOfPlayer(1);
         }
 
@@ -237,6 +238,7 @@ namespace nara
             {
                 if (_ECooldown < 5.0f)
                 {
+
                     Debug.Log("test1");
                     _IsShield = false;
 
@@ -309,9 +311,10 @@ namespace nara
                 float x = Vector3.Distance(_PrePos, _MovePos);
                 if (x < _Teemo)
                 {
-
+                    Debug.Log("dddd");
                     _Rigid.AddForce(this.transform.forward * RLspeed, ForceMode.Force);
                     Debug.Log("arries " + RLspeed);
+
 
                 }
             }
@@ -371,10 +374,12 @@ namespace nara
             //낙하상태 
             if (_Rigid.velocity.y < -0.05f && !_IsAttack && !_IsSkill && stuntime < 0f && !_IsKnockOut)//낙하
             {
+                _IsOnesec = false;
+                _Anim.SetIsOnesec(_IsOnesec);
                 SetState(PlayerState.Falling);
                 //_IsJump = true;
             }
-
+            Breaking();
         }
         void Update()
         {
@@ -387,7 +392,7 @@ namespace nara
             //바닥에 있는지 체크 함수;
             OnFloor();
             //브레이킹 부분
-            Breaking();
+
 
         }
         private void LateUpdate()
@@ -396,7 +401,7 @@ namespace nara
         }
         void OnKeyboard()
         {
-            if ((_IsKnockOut || _IsShield) || stuntime >= 0f||RespawnTime>0f) return;
+            if ((_IsKnockOut || _IsShield) || stuntime >= 0f || RespawnTime > 0f) return;
             if (playertype == 1)
             {
                 if (Input.GetKey(KeyCode.S))//조합기 하 및 하강 속도 향상
@@ -625,9 +630,11 @@ namespace nara
                 SetState(PlayerState.Running);
 
                 this.transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.right * dir), 1f);
-                this.transform.position += transform.forward * _MoveSpeed * Time.deltaTime;
-
-
+                if (_BodyTouchWay != dir)
+                {
+                    Debug.Log("touch");
+                    this.transform.position += transform.forward * _MoveSpeed * Time.deltaTime;
+                }
                 if (dir > 0)
                 {
 
@@ -649,7 +656,12 @@ namespace nara
                 }
                 else
                 {
-                    this.transform.position += Vector3.right * dir * _MoveSpeed / 2.0f * Time.deltaTime;
+
+                    if (_BodyTouchWay != dir)
+                    {
+                        Debug.Log("touch");
+                        this.transform.position += Vector3.right * dir * _MoveSpeed / 2.0f * Time.deltaTime;
+                    }
                 }
             }
         }
@@ -660,11 +672,10 @@ namespace nara
         void Breaking()
         {
             //달리다가 멈추면 미끄러짐
-            if (_IsOnesec && !_IsJump)//탄성 효과
+            if (_IsOnesec && !_IsJump && _State == PlayerState.Idle && !_IsAttack && !_IsSkill)//탄성 효과
             {
                 if (_BreakTime > 0)
                 {
-
                     _Rigid.AddForce(this.transform.forward * _SlideSpeed);
                     _BreakTime -= Time.deltaTime;
                 }
@@ -747,6 +758,7 @@ namespace nara
 
                         this.transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.right * dir), 1f);
                         SetState(PlayerState.AirNormalAttack);
+
 
 
 
@@ -961,6 +973,9 @@ namespace nara
             }
             else
             {
+
+                _IsOnesec = false;
+                _Anim.SetIsOnesec(_IsOnesec);
                 _Rigid.velocity = Vector3.zero;
                 _CantAttack = true;
                 _AttackTime = 0.05f;
@@ -976,15 +991,42 @@ namespace nara
 
         }
 
+        private void OnCollisionExit(Collision collision)
+        {
+            if (collision.gameObject.tag == "Floor")
+            {
+                _IsOnesec = false;
+                _IsJump = true;
+                _Anim.SetIsJump(_IsJump);
+                _Anim.SetIsOnesec(_IsOnesec);
+                if (_IsAttack || _IsSkill)
+                {
+                    _IsAirAtk = true;
+                    _Rigid.velocity = Vector3.zero;
+
+                }
+            }
+            if (collision.gameObject.tag == "1P" || collision.gameObject.tag == "2P")
+            {
+                _BodyTouchWay = 0;
+                Debug.Log("뭐지");
+            }
+        }
 
 
 
         private void OnTriggerEnter(Collider other)
         {
+            //공격 이나 스킬 제외하고선 안밀리게
+
+
+
             if (other.gameObject.tag == "DeadLine")
             {
-                setinit();
                 Debug.Log("데드라인 터치");
+
+                setinit();
+                _Gauge = 0;
                 if (RespawnTime > 0f) return;//여러번 생성방지
                 RespawnTime = 6.0f;
                 _IsRespawn = true;
@@ -999,19 +1041,20 @@ namespace nara
             if (playertype == 1)
             {
 
+
                 if (other.gameObject.tag == "2PA")
                 {
-
+                    Debug.Log("dd");
                     PlayerCtrllercap pc = other.transform.root.GetComponent<PlayerCtrllercap>();
                     this.dir = -pc.dir;
 
-                    pc.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
+                    this.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
                     if (pc._Power.x == 0 && pc._Power.y == 0) //경직
                     {
                         stuntime = 0.2f;
                         _Gauge += pc.Dmg;
-                        SetState(PlayerState.Stun);
-                        _Anim.TriggerStun();
+                        _RunTime = 0;
+                        _IsOnesec = false;
 
                     }
                     else//넉아웃
@@ -1042,8 +1085,9 @@ namespace nara
                     {
                         stuntime = 0.2f;
                         _Gauge += pc.Dmg;
-                        SetState(PlayerState.Stun);
-                        _Anim.TriggerStun();
+                        _RunTime = 0;
+                        _IsOnesec = false;
+
                     }
                     else//넉아웃
                     {
@@ -1063,7 +1107,7 @@ namespace nara
                 }
             }
 
-         
+
         }
 
 
@@ -1110,6 +1154,55 @@ namespace nara
             }
         }
 
+        ///이동관련
+        private void OnCollisionEnter(Collision other)
+        {
+            if (_IsRunning)//이동해서 만날때만
+            {
+                if (playertype == 1)
+                {
+                    if (other.gameObject.tag == "2P")
+                    {
+                        if (Mathf.Abs(other.gameObject.transform.position.y - this.transform.position.y) < 0.8f)
+                        {
+
+                            Debug.Log("2pppp");
+                            if (other.gameObject.transform.position.x > this.transform.position.x)
+                            {
+                                _BodyTouchWay = 1;
+                            }
+                            else
+                            {
+                                _BodyTouchWay = -1;
+                            }
+                        }
+
+                    }
+                }
+                else
+                {
+                    if (other.gameObject.tag == "1P")
+                    {
+                        if (Mathf.Abs(other.gameObject.transform.position.y - this.transform.position.y) < 0.8f)
+                        {
+
+                            if (other.gameObject.transform.position.x > this.transform.position.x)
+                            {
+                                _BodyTouchWay = 1;
+                            }
+                            else
+                            {
+                                _BodyTouchWay = -1;
+                            }
+                        }
+
+                    }
+                }
+
+            }
+        }
+        
+       
 
         //넉아웃 시간 설정 
         void setOutTime()

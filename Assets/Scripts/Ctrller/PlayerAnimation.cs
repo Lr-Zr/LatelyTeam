@@ -66,11 +66,7 @@ namespace nara
         {
             _animator.SetTrigger("KnockOut");
         }
-        public void TriggerStun()
-        {
-
-            _animator.SetTrigger("Stun");
-        }
+  
         public void TriggerReset()
         {
             _animator.ResetTrigger("Attack");

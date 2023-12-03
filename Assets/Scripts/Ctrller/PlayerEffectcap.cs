@@ -94,7 +94,8 @@ namespace nara
                         _AtkEffects[type].transform.localEulerAngles = new Vector3(0, 0, 45f);
                         _AtkEffects[type].transform.localScale = new Vector3(-1, 1, 1); ;
                     }
-                    _Pos += _AtkEffects[type].transform.position;
+                    _AtkEffects[type].transform.position = new Vector3(_playerCtrller.dir, 0.5f, 0);
+                    _Pos = this.transform.position+ _AtkEffects[type].transform.position;
                     break;
 
                 case 2://기본공격3
@@ -108,8 +109,9 @@ namespace nara
                         _AtkEffects[type].transform.localScale = new Vector3(-1, 1, 1); ;
 
                     }
-                    _Pos += _AtkEffects[type].transform.position;
-
+                    _AtkEffects[type].transform.position = new Vector3(_playerCtrller.dir, 0.5f, 0);
+                    _Pos = this.transform.position + _AtkEffects[type].transform.position;
+                   
                     break;
 
 
