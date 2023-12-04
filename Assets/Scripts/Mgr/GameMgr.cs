@@ -9,7 +9,7 @@ namespace nara
 
     public class GameMgr : MonoBehaviour
     {
-        static GameMgr _Ins;//ÀÎ½ºÅÏ½º
+        static GameMgr _Ins;//ï¿½Î½ï¿½ï¿½Ï½ï¿½
         public static GameMgr Instance { get { Init();return _Ins; } }
 
 
@@ -36,7 +36,53 @@ namespace nara
         {
            
         }
+        public void onRespawnPlat(int player)
+        {
+            
+            if (player == 1)
+            {
+                GameObject obj = GameObject.Find("1PZone");
+                if(obj != null)
+                {
+                    Debug.Log("dd");
+                    obj.transform.Find("1P").gameObject.SetActive(true);
+                }
 
+            }
+            else
+            {
+
+                GameObject obj = GameObject.Find("2PZone");
+                if (obj != null)
+                {
+                    obj.transform.Find("2P").gameObject.SetActive(true);
+                }
+
+            }
+
+        }
+        public void offRespawnPlat(int player)
+        {
+            if (player == 1)
+            {
+                GameObject obj = GameObject.Find("1PZone");
+
+                if (obj != null)
+                {
+                    obj.transform.Find("1P").gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+
+                GameObject obj = GameObject.Find("2PZone");
+                if (obj != null)
+                {
+                    obj.transform.Find("2P").gameObject.SetActive(false);
+                }
+            }
+
+        }
 
         static void Init()
         {
@@ -45,7 +91,7 @@ namespace nara
                 GameObject gameobject = GameObject.Find("@GameMgr");
                 if(gameobject == null )
                 {
-                    gameobject = new GameObject { name = "@GameMgr" };//¿ÀºêÁ§Æ® »ý¼º
+                    gameobject = new GameObject { name = "@GameMgr" };//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½
                     gameobject.AddComponent<GameMgr>();
 
                 }

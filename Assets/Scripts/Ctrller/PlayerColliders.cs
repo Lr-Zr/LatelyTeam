@@ -80,7 +80,7 @@ namespace nara
                     break;
                 case 11://NormalSkill
                     _playerCtrller._Power = new Vector3(20, 10, 0);
-                    _playerCtrller.Dmg = 15;
+                    _playerCtrller.Dmg = 10;
                     break;
                 case 12:
                     
@@ -95,7 +95,15 @@ namespace nara
        
         }
 
+        public void offhitted()
+        {
+            for (int i = 0; i < _Collider.Length; i++)
+            {
 
+                _Collider[i].SetActive(false);
+
+            }
+        }
         public void SetTag(string tag)
         {
             for (int i = 0; i < _Collider.Length; i++)

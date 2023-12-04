@@ -116,7 +116,15 @@ namespace nara
             _Collider[atk].SetActive(false);
        
         }
+        public void offhitted()
+        {
+            for (int i = 0; i < _Collider.Length; i++)
+            {
 
+                _Collider[i].SetActive(false);
+
+            }
+        }
         public void SetTag(string tag)
         {
             for (int i = 0; i < _Collider.Length; i++)

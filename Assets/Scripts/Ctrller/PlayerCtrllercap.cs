@@ -153,6 +153,7 @@ namespace nara
         Vector3 P2ResPos;
         int _BodyTouchWay;
 
+        public bool god;
         void Start()
         {
 
@@ -176,12 +177,16 @@ namespace nara
             playertype = 2;
             P1ResPos = new Vector3(-4.5f, 9f, 0f);
             P2ResPos = new Vector3(4.5f, 9f, 0f);
-
+            god = false;
             TypeOfPlayer(2);
         }
 
         private void FixedUpdate()
         {
+            if (god)
+            {
+                this.transform.position = _PrePos;
+            }
             if (RespawnTime > 0f)
             {
                 RespawnTime -= Time.deltaTime;
@@ -190,7 +195,8 @@ namespace nara
 
                     if (RespawnTime < 4.0f)
                     {
-
+                        GameMgr.Instance.onRespawnPlat(playertype);
+                        _Gauge = 0;
                         if (playertype == 1)
                         {
                             this.transform.position = P1ResPos;
@@ -210,6 +216,13 @@ namespace nara
                     }
 
                 }
+                if (RespawnTime < 0f)
+                {
+                    god = false;
+                    GameMgr.Instance.offRespawnPlat(playertype);
+                    _IsJump = true;
+                    _Anim.SetIsJump(_IsJump);
+                }
             }
             //방어키 쿨타임 
             _ECooldown -= Time.deltaTime;
@@ -220,7 +233,7 @@ namespace nara
                 {
                     Debug.Log("test1");
                     _IsShield = false;
-
+                    god = false;
                     _Eff.EffectOff(15);
                 }
 
@@ -429,6 +442,7 @@ namespace nara
                     {
                         SetState(PlayerState.Sheild);
                         _IsShield = true;
+                        god = true;
                         _ECooldown = 6.0f;
                         _Anim.TriggerShield();
 
@@ -512,6 +526,7 @@ namespace nara
                     {
                         SetState(PlayerState.Sheild);
                         _IsShield = true;
+                        god = true;
                         _ECooldown = 6.0f;
                         _Anim.TriggerShield();
 
@@ -840,6 +855,7 @@ namespace nara
                     {
                         _Teemo = 10f;
                         //땅전진공격
+                        _IsAirAtk = true;
                         SetState(PlayerState.RLSkill);
                     }
                     else
@@ -893,7 +909,6 @@ namespace nara
                     _Anim.SetIsDJump(_IsDJump);
 
 
-                    _IsAirAtk = false;
 
                 }
 
@@ -938,6 +953,7 @@ namespace nara
                 _IsUpMove = false;
                 _IsAirAtk = false;
 
+                _Cols.offhitted();
                 _Anim.TriggerReset();
             }
 
@@ -954,8 +970,10 @@ namespace nara
                 _Anim.SetIsOnesec(_IsOnesec);
                 if (_IsAttack || _IsSkill)
                 {
-                    _IsAirAtk = true;
-                    _Rigid.velocity = Vector3.zero;
+                    _RunTime = 0;
+                    if (!_IsKeyUp)
+
+                        _IsAirAtk = true;
 
                 }
             }
@@ -965,14 +983,15 @@ namespace nara
 
         private void OnTriggerEnter(Collider other)
         {
+            if (RespawnTime > 0) return;
+
 
             if (other.gameObject.tag == "DeadLine")
             {
                 Debug.Log("데드라인 터치");
-
+                god = true;
                 setinit();
-                _Gauge = 0;
-                if (RespawnTime > 0f) return;//여러번 생성방지
+
                 RespawnTime = 6.0f;
                 _IsRespawn = true;
                 _Eff.Dead(this.transform.position);//이펙트 생성
@@ -993,6 +1012,7 @@ namespace nara
                     pc.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
                     if (pc._Power.x == 0 && pc._Power.y == 0) //경직
                     {
+                        setinit();
                         stuntime = 0.2f;
                         _Gauge += pc.Dmg;
                         _RunTime = 0;
@@ -1028,6 +1048,7 @@ namespace nara
                     this.transform.localEulerAngles = new Vector3(0, dir * 90, 0);
                     if (pc._Power.x == 0 && pc._Power.y == 0) //경직
                     {
+                        setinit();
                         stuntime = 0.2f;
                         _Gauge += pc.Dmg;
                         _RunTime = 0;
@@ -1052,10 +1073,111 @@ namespace nara
 
 
         }
-
-        ///이동관련
         private void OnCollisionEnter(Collision other)
         {
+            if (_IsSkill || _IsAttack)
+            {
+                if (other.gameObject.name == "N_Aries")
+                {
+                    PlayerCtrller pc = other.gameObject.GetComponent<PlayerCtrller>();
+
+                    if (playertype == 1)
+                    {
+                        if (other.gameObject.tag == "2P")
+                        {
+
+                            if (pc.god)
+                            {
+
+                                _IsRLMove = false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (other.gameObject.tag == "1P")
+                        {
+
+                            if (pc.god)
+                            {
+
+                                _IsRLMove = false;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+
+                    PlayerCtrllercap pc = other.gameObject.GetComponent<PlayerCtrllercap>();
+
+                    if (playertype == 1)
+                    {
+                        if (other.gameObject.tag == "2P")
+                        {
+                            if (pc.god)
+                            {
+
+                                _IsRLMove = false;
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        if (other.gameObject.tag == "1P")
+                        {
+                            if (pc.god)
+                            {
+
+                                _IsRLMove = false;
+                            }
+
+                        }
+                    }
+                }
+
+
+            }
+        }
+
+            ///이동관련
+            private void OnCollisionStay(Collision other)
+        {
+            //아더에서 커포넌트가서 확인한다음에 가져와야해
+
+            if (_IsSkill || _IsAttack)
+            {
+                if (other.gameObject.name == "N_Aries")
+                {
+                    PlayerCtrller pc = other.gameObject.GetComponent<PlayerCtrller>();
+                }
+                else
+                {
+
+                    PlayerCtrller pc = other.gameObject.GetComponent<PlayerCtrller>();
+                }
+
+                if (playertype == 1)
+                {
+                    if (other.gameObject.tag == "2P")
+                    {
+
+
+                    }
+                }
+                else
+                {
+                    if (other.gameObject.tag == "1P")
+                    {
+
+
+                    }
+                }
+
+            }
+
+
             if (_IsRunning)//이동해서 만날때만
             {
                 if (playertype == 1)
@@ -1099,6 +1221,7 @@ namespace nara
                 }
 
             }
+
         }
 
 
